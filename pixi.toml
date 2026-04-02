@@ -17,6 +17,7 @@ pytorch-cuda = { version = "11.8.*", channel = "pytorch" }
 numpy = { version = "1.26.*", channel = "conda-forge" }
 pillow = { version = ">=10.1,<11", channel = "conda-forge" }
 libjpeg-turbo = { version = ">=3.1,<4", channel = "conda-forge" }
+h5py = { version = ">=3.11,<4", channel = "conda-forge" }
 pip = "24.*"
 
 [pypi-dependencies]
@@ -57,5 +58,11 @@ cmd = "python pin_slam.py ./config/lidar_slam/run_demo.yaml -vsmc"
 [tasks.vis-help]
 cmd = "python vis_pin_map.py -h"
 
+[tasks.oxford-convert-help]
+cmd = "python dataset/converter/oxford_to_pin_format.py -h"
+
 [tasks.smoke-test]
 cmd = "python -c \"import torch, open3d, gtsam, yaml, wandb, roma; import dtyper; from dataset.dataloaders import available_dataloaders; print(torch.__version__); print(open3d.__version__); print('dataloaders', len(available_dataloaders()))\""
+
+[tasks.test]
+cmd = "python -m unittest discover -s tests"

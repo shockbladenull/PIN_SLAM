@@ -2,6 +2,7 @@ numpy==1.26.4
 evo==1.28.0
 gnupg==2.3.1 
 gtsam==4.2
+h5py>=3.11,<4
 laspy==2.5.3
 natsort==8.1.0
 open3d==0.19.0
