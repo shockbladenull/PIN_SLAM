@@ -145,6 +145,8 @@ The provided `pixi.toml` targets Linux, Python 3.10, PyTorch 2.5.1, and CUDA 11.
 
 Optional dataloaders may still require extra packages not installed by default, such as `rosbags` (ROS bag), `mcap-ros2-support` (MCAP), `ouster-sdk` (Ouster PCAP), or `pyntcloud` (generic point cloud fallback).
 
+The Oxford conversion helper introduced in `dataset/converter/oxford_to_pin_format.py` also requires `h5py`, which is included in the Pixi environment and in `requirements.txt`.
+
 ### 2. Set up conda environment (alternative)
 
 ```
@@ -224,6 +226,52 @@ For an arbitrary data sequence with point clouds in the format of `*.ply`, `*.pc
 ```
 python3 pin_slam.py -i /path/to/your/point/cloud/folder -vsm
 ```
+
+### Oxford / RobotCar via conversion
+
+If your Oxford data is laid out like the TransLO workflow, convert it first into PIN-SLAM's generic `pointcloud-folder + poses.txt` format. The converter reads scans from `<sequence>/velodyne_left/<timestamp>.bin`, aligns the Oxford TXT poses against `valid_timestamps` from the full-route H5, then selects the masked timestamps from the mask H5.
+
+The converter always exports `PLY` files instead of reusing the original Oxford `.bin`. This avoids the Oxford/KITTI `.bin` layout mismatch in PIN-SLAM's generic loader.
+
+```
+pixi run python dataset/converter/oxford_to_pin_format.py \
+  --oxford-root /Localize/ljc/Dataset/Oxford \
+  --sequence 2019-01-11-14-02-26-radar-oxford-10k \
+  --output-root ./data/oxford_pin \
+  --mask-h5-root /home/ljc/Downloads/h5filewithruenandstrait_swapped_turning/2-h5data \
+  --mask-h5-name velodyne_left_calibrateFalse_SCR_turning_straight.h5 \
+  --full-h5-root /home/ljc/Downloads/2-h5data \
+  --full-h5-name velodyne_left_calibrateFalse.h5 \
+  --pose-root /home/ljc/Downloads/QEOxford
+```
+
+The exported directory will look like:
+
+```
+data/oxford_pin/2019-01-11-14-02-26-radar-oxford-10k/
+  poses.txt
+  timestamps.txt
+  ply/
+    1547212181324327.ply
+    1547212181424327.ply
+    ...
+```
+
+Keep the `ply/` directory clean: only point cloud files should live there. PIN-SLAM reads `pc_path` with `natsorted(os.listdir(pc_path))`, so `poses.txt` must match that exact sorted file order.
+
+Use `config/lidar_slam/run_oxford.yaml` as the starting point, then confirm the effective runtime config still has both `track_on: true` and `pgo_on: true` in `meta/config_all.yaml` after a run. Those flags determine whether odometry evaluation and SLAM evaluation are actually written.
+
+Suggested commands:
+
+```
+# quick smoke run: check trajectory plots and pose_eval.csv first
+pixi run python pin_slam.py ./config/lidar_slam/run_oxford.yaml -l --range 0 1000 1
+
+# full run with map and mesh export
+pixi run python pin_slam.py ./config/lidar_slam/run_oxford.yaml -l -s -m
+```
+
+With `pose_path` set and tracking enabled, PIN-SLAM writes `pose_eval.csv`, `traj_plot_2d.png`, and `traj_plot_3d.png`. With PGO enabled, it also writes KITTI/TUM trajectory text files prefixed with `slam_poses`.
 
 <details>
   <summary>[More Usage (click to expand)]</summary>

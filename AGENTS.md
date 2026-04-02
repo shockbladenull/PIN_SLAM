@@ -10,14 +10,16 @@ Useful commands:
 - `pixi run python pin_slam.py -h`: show all runtime flags and dataset loader options.
 - `pixi run download-kitti-example`: fetch the small KITTI sanity-check dataset.
 - `pixi run demo`: run the standard sanity test with viewer, map save, and mesh save.
+- `pixi run oxford-convert-help`: inspect the Oxford-to-PIN conversion CLI.
 - `pixi run vis-help`: inspect mesh reconstruction options for saved runs.
+- `pixi run test`: run the lightweight regression tests under `tests/`.
 - `cd docker && ./build_docker.sh && ./start_docker.sh`: build and start the provided Docker workflow.
 
 ## Coding Style & Naming Conventions
 This repository is Python-first. Follow existing style: 4-space indentation, snake_case for functions, variables, modules, and YAML configs such as `run_kitti.yaml`; PascalCase for classes such as `SLAMDataset` or `PoseGraphManager`. Prefer small, focused helpers in `utils/` or `dataset/dataloaders/` rather than adding logic to the top-level scripts. No formatter or linter config is checked in, so keep imports, type hints, and inline comments consistent with nearby files.
 
 ## Testing Guidelines
-There is no dedicated automated test suite in the repo today. Validate changes with `pixi run smoke-test`, then run the smallest relevant workflow, usually the KITTI demo above or a dataset-specific command that exercises the modified loader, mapper, or GUI path. For evaluation-related work, update or rerun the notebooks and helpers in `eval/`. Do not commit generated `data/`, `experiments/`, screenshots, or other large outputs.
+Automated coverage is minimal but now includes small regression tests under `tests/`. Run `pixi run smoke-test`, then `pixi run test`, and finally the smallest relevant workflow, usually the KITTI demo above or a dataset-specific command that exercises the modified loader, mapper, or GUI path. For Oxford conversions, also verify that `pc_path` contains only point clouds and that `meta/config_all.yaml` shows `track_on: true` and `pgo_on: true`. Do not commit generated `data/`, `experiments/`, screenshots, or other large outputs.
 
 ## Commit & Pull Request Guidelines
 Recent history uses short imperative subjects, sometimes prefixed with tags like `[MINOR]`, for example `[MINOR] update readme`. Keep commits narrow, mention affected dataset/config when relevant, and reference issue numbers in the subject or body when applicable. Pull requests should explain the behavioral change, list the commands or datasets used for validation, and attach screenshots only when GUI, visualization, or mesh output changed.
