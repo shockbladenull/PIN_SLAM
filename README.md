@@ -134,14 +134,25 @@ git clone git@github.com:PRBonn/PIN_SLAM.git
 cd PIN_SLAM
 ```
 
-### 1. Set up conda environment
+### 1. Set up environment with Pixi (recommended)
+
+```
+pixi install
+pixi run python pin_slam.py -h
+```
+
+The provided `pixi.toml` targets Linux, Python 3.10, PyTorch 2.5.1, and CUDA 11.8. To run commands inside the managed environment, prefix them with `pixi run`, for example `pixi run python pin_slam.py ./config/lidar_slam/run_demo.yaml -vsm`.
+
+Optional dataloaders may still require extra packages not installed by default, such as `rosbags` (ROS bag), `mcap-ros2-support` (MCAP), `ouster-sdk` (Ouster PCAP), or `pyntcloud` (generic point cloud fallback).
+
+### 2. Set up conda environment (alternative)
 
 ```
 conda create --name pin python=3.10
 conda activate pin
 ```
 
-### 2. Install the key requirement PyTorch
+### 3. Install the key requirement PyTorch
 
 ```
 conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1  pytorch-cuda=11.8 -c pytorch -c nvidia
@@ -149,7 +160,7 @@ conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1  pytorch-cuda
 
 The commands depend on your CUDA version (check it by `nvcc --version`). You may check the instructions [here](https://pytorch.org/get-started/previous-versions/).
 
-### 3. Install other dependency
+### 4. Install other dependency
 
 ```
 pip3 install -r requirements.txt

@@ -1,0 +1,61 @@
+[workspace]
+name = "pin-slam"
+version = "0.1.0"
+description = "Pixi environment for PIN-SLAM"
+channels = ["pytorch", "nvidia", "conda-forge"]
+platforms = ["linux-64"]
+
+[system-requirements]
+libc = { family = "glibc", version = "2.31" }
+
+[dependencies]
+python = "3.10.*"
+pytorch = { version = "2.5.1.*", channel = "pytorch" }
+torchvision = { version = "0.20.1.*", channel = "pytorch" }
+torchaudio = { version = "2.5.1.*", channel = "pytorch" }
+pytorch-cuda = { version = "11.8.*", channel = "pytorch" }
+numpy = { version = "1.26.*", channel = "conda-forge" }
+pillow = { version = ">=10.1,<11", channel = "conda-forge" }
+libjpeg-turbo = { version = ">=3.1,<4", channel = "conda-forge" }
+pip = "24.*"
+
+[pypi-dependencies]
+evo = "==1.28.0"
+gnupg = "==2.3.1"
+gtsam = "==4.2"
+laspy = "==2.5.3"
+natsort = "==8.1.0"
+open3d = "==0.19.0"
+pycryptodomex = "==3.20.0"
+pypose = "==0.6.8"
+pyquaternion = "==0.9.9"
+rich = "==12.5.1"
+roma = "==1.5.0"
+rospkg = "==1.5.1"
+scikit-image = "==0.25.2"
+dtyper = "==2.5.1"
+wandb = "==0.19.0"
+opencv-python = ">=4.10,<5"
+matplotlib = ">=3.9,<3.11"
+pyyaml = ">=6,<7"
+tqdm = ">=4.66,<5"
+trimesh = ">=4,<5"
+plyfile = ">=1,<2"
+
+[tasks.help]
+cmd = "python pin_slam.py -h"
+
+[tasks.download-kitti-example]
+cmd = "sh ./scripts/download_kitti_example.sh"
+
+[tasks.demo]
+cmd = "python pin_slam.py ./config/lidar_slam/run_demo.yaml -vsm"
+
+[tasks.demo-cpu]
+cmd = "python pin_slam.py ./config/lidar_slam/run_demo.yaml -vsmc"
+
+[tasks.vis-help]
+cmd = "python vis_pin_map.py -h"
+
+[tasks.smoke-test]
+cmd = "python -c \"import torch, open3d, gtsam, yaml, wandb, roma; import dtyper; from dataset.dataloaders import available_dataloaders; print(torch.__version__); print(open3d.__version__); print('dataloaders', len(available_dataloaders()))\""
