@@ -115,6 +115,12 @@ class OxfordToPinFormatTests(unittest.TestCase):
             exported_timestamps = np.loadtxt(Path(conversion["timestamps_output_path"]), dtype=np.int64)
             np.testing.assert_array_equal(exported_timestamps, np.asarray([20, 40, 50], dtype=np.int64))
 
+            exported_aligned_poses = np.loadtxt(Path(conversion["aligned_pose_output_path"]), dtype=np.float32)
+            np.testing.assert_allclose(exported_aligned_poses, pose_rows)
+
+            exported_aligned_timestamps = np.loadtxt(Path(conversion["aligned_timestamps_output_path"]), dtype=np.int64)
+            np.testing.assert_array_equal(exported_aligned_timestamps, np.asarray([20, 30, 40, 50], dtype=np.int64))
+
             exported_cloud = o3d.io.read_point_cloud(str(pointcloud_dir / "20.ply"))
             exported_points = np.asarray(exported_cloud.points)
             expected_points = scan_points[20].copy().astype(np.float64)
@@ -123,6 +129,7 @@ class OxfordToPinFormatTests(unittest.TestCase):
 
             self.assertEqual(sorted(os.listdir(pointcloud_dir)), ["20.ply", "40.ply", "50.ply"])
             self.assertTrue((Path(conversion["sequence_output_dir"]) / "timestamps.txt").is_file())
+            self.assertTrue((Path(conversion["sequence_output_dir"]) / "aligned_timestamps.txt").is_file())
             self.assertNotIn("timestamps.txt", os.listdir(pointcloud_dir))
 
 

@@ -249,6 +249,8 @@ The exported directory will look like:
 
 ```
 data/oxford_pin/2019-01-11-14-02-26-radar-oxford-10k/
+  aligned_poses.txt
+  aligned_timestamps.txt
   poses.txt
   timestamps.txt
   ply/
@@ -272,6 +274,17 @@ pixi run python pin_slam.py ./config/lidar_slam/run_oxford.yaml -l -s -m
 ```
 
 With `pose_path` set and tracking enabled, PIN-SLAM writes `pose_eval.csv`, `traj_plot_2d.png`, and `traj_plot_3d.png`. With PGO enabled, it also writes KITTI/TUM trajectory text files prefixed with `slam_poses`.
+
+If you split one Oxford route into several independent PIN-SLAM runs and only want a `TransLO`-style stitched visualization, use the offline stitcher. It reads each run's `meta/config_all.yaml`, slices the shared `pose_path`, re-anchors each segment at its GT start pose, and writes `full_route_path.png` plus `full_route_path_3D.png`.
+
+```
+pixi run python eval/stitch_segment_runs.py \
+  ./experiments/oxford_seg_0000_1200 \
+  ./experiments/oxford_seg_1200_2400 \
+  -o ./experiments/oxford_stitched
+```
+
+When `aligned_poses.txt` exists next to the shared Oxford `poses.txt`, the stitcher uses it automatically as the gray background route, which makes the output closer to `TransLO`'s `oxford_detailed` figures.
 
 <details>
   <summary>[More Usage (click to expand)]</summary>

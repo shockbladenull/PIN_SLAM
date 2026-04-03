@@ -231,23 +231,47 @@ def load_oxford_pose_selection(
         "mask_h5_path": mask_h5_path,
         "full_h5_path": full_h5_path,
         "pose_txt_path": pose_txt_path,
+        "aligned_timestamps": aligned_timestamps,
+        "aligned_pose_rows": aligned_pose_rows,
         "selected_timestamps": selected_timestamps,
         "selected_pose_rows": selected_pose_rows,
     }
 
 
-def prepare_output_dirs(sequence_output_dir: str, pointcloud_dir_name: str, overwrite: bool) -> tuple[str, str]:
+def prepare_output_dirs(
+    sequence_output_dir: str,
+    pointcloud_dir_name: str,
+    overwrite: bool,
+    resume: bool,
+) -> tuple[str, str]:
+    if overwrite and resume:
+        raise ValueError("Oxford conversion cannot use overwrite and resume at the same time")
+
     if overwrite and os.path.isdir(sequence_output_dir):
         shutil.rmtree(sequence_output_dir)
 
     os.makedirs(sequence_output_dir, exist_ok=True)
     pointcloud_dir = os.path.join(sequence_output_dir, pointcloud_dir_name)
     os.makedirs(pointcloud_dir, exist_ok=True)
-    if os.listdir(pointcloud_dir):
+    if (not resume) and os.listdir(pointcloud_dir):
         raise FileExistsError(
             "Output point cloud directory is not empty. Use --overwrite or a fresh output root: {}".format(pointcloud_dir)
         )
     return sequence_output_dir, pointcloud_dir
+
+
+def validate_existing_pointcloud_dir(pointcloud_dir: str, expected_filenames: set[str]) -> int:
+    existing_filenames = os.listdir(pointcloud_dir)
+    if any(not filename.endswith(".ply") for filename in existing_filenames):
+        raise RuntimeError("Output point cloud directory contains non-PLY files: {}".format(pointcloud_dir))
+
+    unexpected_files = sorted(set(existing_filenames) - expected_filenames)
+    if unexpected_files:
+        raise RuntimeError(
+            "Output point cloud directory contains {} unexpected PLY files for the requested Oxford selection, "
+            "use --overwrite to regenerate cleanly: {}".format(len(unexpected_files), pointcloud_dir)
+        )
+    return len(existing_filenames)
 
 
 def convert_sequence(
@@ -265,6 +289,7 @@ def convert_sequence(
     trim_edges: int = 0,
     pointcloud_dir_name: str = "ply",
     overwrite: bool = False,
+    resume: bool = False,
 ) -> dict:
     selection = load_oxford_pose_selection(
         oxford_root=oxford_root,
@@ -284,19 +309,42 @@ def convert_sequence(
         sequence_output_dir=os.path.join(output_root, sequence_name),
         pointcloud_dir_name=pointcloud_dir_name,
         overwrite=overwrite,
+        resume=resume,
     )
 
-    for timestamp in selection["selected_timestamps"]:
+    expected_filenames = {"{}.ply".format(int(timestamp)) for timestamp in selection["selected_timestamps"]}
+    existing_count = validate_existing_pointcloud_dir(pointcloud_dir, expected_filenames) if resume else 0
+    total_count = len(selection["selected_timestamps"])
+    print(
+        "Oxford conversion {}: {} selected scans ({} already present)".format(
+            sequence_name, total_count, existing_count
+        )
+    )
+
+    for idx, timestamp in enumerate(selection["selected_timestamps"], start=1):
+        ply_name = "{}.ply".format(int(timestamp))
+        ply_path = os.path.join(pointcloud_dir, ply_name)
+        if resume and os.path.isfile(ply_path):
+            if idx == 1 or idx == total_count or idx % 1000 == 0:
+                print("Oxford conversion {}: reuse {}/{}".format(sequence_name, idx, total_count))
+            continue
+
         scan_path = os.path.join(selection["scan_dir"], "{}.bin".format(int(timestamp)))
         if not os.path.isfile(scan_path):
             raise FileNotFoundError("Oxford scan file not found: {}".format(scan_path))
         points = read_oxford_scan_bin(scan_path)
-        write_ply(points, os.path.join(pointcloud_dir, "{}.ply".format(int(timestamp))))
+        write_ply(points, ply_path)
+        if idx == 1 or idx == total_count or idx % 1000 == 0:
+            print("Oxford conversion {}: wrote {}/{}".format(sequence_name, idx, total_count))
 
     pose_output_path = os.path.join(sequence_output_dir, "poses.txt")
     timestamps_output_path = os.path.join(sequence_output_dir, "timestamps.txt")
+    aligned_pose_output_path = os.path.join(sequence_output_dir, "aligned_poses.txt")
+    aligned_timestamps_output_path = os.path.join(sequence_output_dir, "aligned_timestamps.txt")
     write_kitti_pose_rows(pose_output_path, selection["selected_pose_rows"])
     np.savetxt(timestamps_output_path, selection["selected_timestamps"], fmt="%d")
+    write_kitti_pose_rows(aligned_pose_output_path, selection["aligned_pose_rows"])
+    np.savetxt(aligned_timestamps_output_path, selection["aligned_timestamps"], fmt="%d")
 
     pointcloud_filenames = os.listdir(pointcloud_dir)
     if not pointcloud_filenames:
@@ -309,6 +357,8 @@ def convert_sequence(
         "pointcloud_dir": pointcloud_dir,
         "pose_output_path": pose_output_path,
         "timestamps_output_path": timestamps_output_path,
+        "aligned_pose_output_path": aligned_pose_output_path,
+        "aligned_timestamps_output_path": aligned_timestamps_output_path,
         "frame_count": int(len(selection["selected_timestamps"])),
     }
 
@@ -335,6 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trim-edges", type=int, default=0, help="Trim N masked frames from both ends after alignment")
     parser.add_argument("--pointcloud-dir-name", default="ply", help="Subdirectory name for exported point clouds")
     parser.add_argument("--overwrite", action="store_true", help="Replace an existing output sequence directory")
+    parser.add_argument("--resume", action="store_true", help="Reuse existing matching PLY files and only fill in missing outputs")
     return parser
 
 
@@ -355,11 +406,13 @@ def main() -> None:
         trim_edges=args.trim_edges,
         pointcloud_dir_name=args.pointcloud_dir_name,
         overwrite=args.overwrite,
+        resume=args.resume,
     )
     print("Oxford conversion complete")
     print("Sequence output:", conversion["sequence_output_dir"])
     print("Point clouds:", conversion["pointcloud_dir"])
     print("Poses:", conversion["pose_output_path"])
+    print("Aligned poses:", conversion["aligned_pose_output_path"])
     print("Frames:", conversion["frame_count"])
 
 

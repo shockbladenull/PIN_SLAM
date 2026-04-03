@@ -61,6 +61,9 @@ cmd = "python vis_pin_map.py -h"
 [tasks.oxford-convert-help]
 cmd = "python dataset/converter/oxford_to_pin_format.py -h"
 
+[tasks.oxford-stitch-help]
+cmd = "python eval/stitch_segment_runs.py -h"
+
 [tasks.smoke-test]
 cmd = "python -c \"import torch, open3d, gtsam, yaml, wandb, roma; import dtyper; from dataset.dataloaders import available_dataloaders; print(torch.__version__); print(open3d.__version__); print('dataloaders', len(available_dataloaders()))\""
 
